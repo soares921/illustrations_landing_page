@@ -1,0 +1,122 @@
+[
+  {
+    "client_id": "ORG-001",
+    "organization_name": "Akron's Childrens Hosptial",
+    "default_offset_pct": 15.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-002",
+    "organization_name": "Battelle",
+    "default_offset_pct": 0.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-003",
+    "organization_name": "Excela Health",
+    "default_offset_pct": 0.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-004",
+    "organization_name": "Forrest General Hospital",
+    "default_offset_pct": 15.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-005",
+    "organization_name": "Hancock Hospital",
+    "default_offset_pct": 13.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-006",
+    "organization_name": "Hendricks Regional Health",
+    "default_offset_pct": 18.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-007",
+    "organization_name": "Horizon Health",
+    "default_offset_pct": 0.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-008",
+    "organization_name": "King's Daughters Medical Center",
+    "default_offset_pct": 0.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-009",
+    "organization_name": "Marshall Health",
+    "default_offset_pct": 0.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-010",
+    "organization_name": "McLaren Healthcare",
+    "default_offset_pct": 15.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-011",
+    "organization_name": "Med Center Health",
+    "default_offset_pct": 15.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-012",
+    "organization_name": "Memorial Health System",
+    "default_offset_pct": 15.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-013",
+    "organization_name": "The Mohegan Tribe",
+    "default_offset_pct": 0.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-014",
+    "organization_name": "Monongalia Health",
+    "default_offset_pct": 0.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-015",
+    "organization_name": "Nationwide Children's Hospital",
+    "default_offset_pct": 0.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-016",
+    "organization_name": "Ohio Health",
+    "default_offset_pct": 20.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-017",
+    "organization_name": "Prisma Health",
+    "default_offset_pct": 15.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-018",
+    "organization_name": "Southwest Health",
+    "default_offset_pct": 15.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-019",
+    "organization_name": "St. Elizabeth Healthcare",
+    "default_offset_pct": 15.0,
+    "active": true
+  },
+  {
+    "client_id": "ORG-020",
+    "organization_name": "Witham Health Services",
+    "default_offset_pct": 15.0,
+    "active": true
+  }
+]
