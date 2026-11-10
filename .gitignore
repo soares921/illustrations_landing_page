@@ -1,0 +1,6 @@
+# google key and other secrets: never commit
+.streamlit/secrets.toml
+*service_account*.json
+
+__pycache__/
+.pytest_cache/
