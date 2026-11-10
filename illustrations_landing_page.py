@@ -63,7 +63,11 @@ try:
     routing_config = load_routing(os.path.getmtime(ROUTING_FILE))
     clients, client_source = storage.load_clients()
 except Exception as e:
-    st.error(f"The page couldn't load its configuration: {e}")
+   reason = str(e) or "Google refused access to the sheet."
+    st.error(f"The page couldn't load its configuration ({type(e).__name__}): {reason}")
+    if isinstance(e, PermissionError):
+        st.info("Check that the sheet is shared with the service account's email as an editor, "
+                "and that the Google Sheets API is enabled in its Cloud project.")
     st.stop()
 
 active_clients = [c for c in clients if c["active"]]
