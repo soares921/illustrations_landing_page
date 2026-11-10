@@ -1,0 +1,21 @@
+client_id,organization_name,default_offset_pct,active
+ORG-001,Akron Children's Hospital,15,TRUE
+ORG-002,Battelle,0,TRUE
+ORG-003,Excela Health,0,TRUE
+ORG-004,Forrest General Hospital,15,TRUE
+ORG-005,Hancock Hospital,13,TRUE
+ORG-006,Hendricks Regional Health,18,TRUE
+ORG-007,Horizon Health,0,TRUE
+ORG-008,King's Daughters Medical Center,0,TRUE
+ORG-009,Marshall Health,0,TRUE
+ORG-010,McLaren Healthcare,15,TRUE
+ORG-011,Med Center Health,15,TRUE
+ORG-012,Memorial Health System,15,TRUE
+ORG-013,The Mohegan Tribe,0,TRUE
+ORG-014,Monongalia Health,0,TRUE
+ORG-015,Nationwide Children's Hospital,0,TRUE
+ORG-016,Ohio Health,20,TRUE
+ORG-017,Prisma Health,15,TRUE
+ORG-018,Southwest Health,15,TRUE
+ORG-019,St. Elizabeth Healthcare,15,TRUE
+ORG-020,Witham Health Services,15,TRUE

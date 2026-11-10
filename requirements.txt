@@ -1,1 +1,5 @@
-streamlit>=1.30.0
+streamlit==1.66.1
+gspread==6.2.1
+google-auth==2.62.0
+xhtml2pdf==0.2.26
+pytest==8.4.2

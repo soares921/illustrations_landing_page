@@ -1,0 +1,41 @@
+{
+  "routing_basis": "participant_contribution",
+
+  "benefit": {
+    "carrier": "Allianz Life"
+  },
+
+  "carrier_templates": {
+    "benefit": {
+      "Allianz Life": "allianz_benefit.html"
+    },
+    "recovery": {}
+  },
+
+  "recovery_rules": [
+    {
+      "rule_id": "RULE-SINGLE-ANY",
+      "design_type": "Single life recovery",
+      "min_contribution": 0,
+      "below_contribution": null,
+      "recovery_carriers": ["John Hancock", "Symetra"],
+      "note": ""
+    },
+    {
+      "rule_id": "RULE-JOINT-UNDER-200K",
+      "design_type": "Joint life recovery",
+      "min_contribution": 0,
+      "below_contribution": 200000,
+      "recovery_carriers": ["Penn Mutual", "National Life"],
+      "note": ""
+    },
+    {
+      "rule_id": "RULE-JOINT-200K-PLUS",
+      "design_type": "Joint life recovery",
+      "min_contribution": 200000,
+      "below_contribution": null,
+      "recovery_carriers": ["Penn Mutual", "National Life", "Lincoln Financial"],
+      "note": "Lincoln Financial added for Joint Life requests of $200,000 and above."
+    }
+  ]
+}
