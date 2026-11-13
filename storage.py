@@ -1,22 +1,19 @@
-"""
-Google Sheet storage.
+# Google Sheet storage.
 
-The spreadsheet "CAP Illustration Requests" has two tabs:
-  Clients  - the Client Key (one row per organization)
-  Requests - one row per submitted request; also the source of Request IDs
+# the spreadsheet "CAP Illustration Requests" has two tabs:
+# clients  - the client key (one row per organization)
+# requests - one row per submitted request; also the source of request IDs
 
-Connection details live in Streamlit secrets, never in this code.
-If the sheet is not connected yet, the client list falls back to
-config/clients_seed.csv so the form can still be tested, and submitting is
-turned off.
-"""
+# connection details live in streamlit secrets, never in this code
+# if the sheet is not connected yet, the client list falls back to
+# config/clients_seed.csv so the form can still be tested, and submitting is turned off
 
 import csv
 import datetime
 import json
 import os
-
 import streamlit as st
+import rules
 
 CLIENTS_TAB = "Clients"
 REQUESTS_TAB = "Requests"
@@ -39,10 +36,7 @@ REQUEST_COLUMNS = [
     "request_json",
 ]
 
-
-# ==========================================
 # CONNECTION
-# ==========================================
 
 def is_connected():
     try:
@@ -57,20 +51,15 @@ def _spreadsheet():
     client = gspread.service_account_from_dict(dict(st.secrets["gcp_service_account"]))
     return client.open_by_key(st.secrets["google_sheet"]["spreadsheet_id"])
 
-
-# ==========================================
 # CLIENTS
-# ==========================================
 
 def _parse_pct(value):
-    """Accepts 15, '15', or '15%' and returns 15.0."""
+    # accepts 15, '15', or '15%' and returns 15.0
     text = str(value).strip().replace("%", "")
     return float(text) if text else 0.0
 
-
 def _parse_active(value):
     return str(value).strip().upper() in ("TRUE", "YES", "Y", "1", "")
-
 
 def _clean_clients(rows):
     clients = []
@@ -86,8 +75,7 @@ def _clean_clients(rows):
         })
     return sorted(clients, key=lambda c: c["organization_name"].lower())
 
-
-@st.cache_data(ttl=60)  # new rows in the Clients tab show up within a minute
+@st.cache_data(ttl=60)  # new rows in the clients tab shows after a min
 def load_clients():
     """Returns (clients, source) where source is 'sheet' or 'sample'."""
     if is_connected():
@@ -100,13 +88,10 @@ def load_clients():
     with open(SEED_FILE, newline="", encoding="utf-8") as f:
         return _clean_clients(list(csv.DictReader(f))), "sample"
 
-
-# ==========================================
 # REQUESTS
-# ==========================================
 
 def _next_request_id(worksheet, year):
-    """CAP-YYYY-0001, counting up within each year."""
+    # CAP-YYYY-0001, counting up within each year
     prefix = f"CAP-{year}-"
     numbers = [
         int(value[len(prefix):])
@@ -114,7 +99,6 @@ def _next_request_id(worksheet, year):
         if value.startswith(prefix) and value[len(prefix):].isdigit()
     ]
     return f"{prefix}{(max(numbers) + 1 if numbers else 1):04d}"
-
 
 def _request_row(request, request_id):
     p, s = request["primary"], request["secondary"] or {}
@@ -124,7 +108,7 @@ def _request_row(request, request_id):
 
     values = {
         "request_id": request_id,
-        "submitted_at": datetime.datetime.now().strftime("%m/%d/%Y %I:%M %p"),
+        "submitted_at": rules.now().strftime("%m/%d/%Y %I:%M %p"),
         "status": "Submitted",
         "requestor_name": request["requestor_name"],
         "requestor_email": request["requestor_email"],
@@ -160,9 +144,8 @@ def _request_row(request, request_id):
     }
     return [values[c] for c in REQUEST_COLUMNS]
 
-
 def submit_request(request):
-    """Assigns the next Request ID, saves the request as a new row, returns the ID."""
+    # assigns the next request ID, saves the request as a new row, returns the ID
     worksheet = _spreadsheet().worksheet(REQUESTS_TAB)
     if not worksheet.row_values(1):
         worksheet.append_row(REQUEST_COLUMNS, value_input_option="RAW")

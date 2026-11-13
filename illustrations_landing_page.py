@@ -1,16 +1,12 @@
-"""
-CAP Illustration Request landing page.
+#CAP Illustration Request landing page
 
-This file is the form only. Business rules live in rules.py, carrier sheets in
-documents.py + /templates, storage in storage.py, delivery in delivery.py.
-"""
+# this file is the form only. Business rules live in rules.py, carrier sheets in
+# documents.py + templates, storage in storage.py, delivery in delivery.py.
 
 import datetime
 import json
 import os
-
 import streamlit as st
-
 import delivery
 import documents
 import rules
@@ -27,76 +23,61 @@ US_STATES = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
              "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
 
 
-# ==========================================
 # SESSION STATE
-# ==========================================
-# Every widget key ends in the form version, so "Start a new request"
-# can clear the whole form by bumping the version.
+# every widget key ends in the form version, so "Start a new request"
+# can clear the whole form by bumping the version
 
 if "form_version" not in st.session_state:
     st.session_state.form_version = 0
     st.session_state.preview = None      # {"request": ..., "signature": ...}
     st.session_state.submitted = None    # {"request_id": ..., "pdf": ..., ...}
 
-
 def k(name):
     return f"{name}_{st.session_state.form_version}"
-
 
 def start_new_request():
     st.session_state.form_version += 1
     st.session_state.preview = None
     st.session_state.submitted = None
 
-
-# ==========================================
 # LOAD CONFIGURATION
-# ==========================================
 
 @st.cache_data
 def load_routing(_modified_time):
-    # re-reads automatically whenever the file changes
+    # rereads automatically whenever the file changes
     return rules.load_routing_config(ROUTING_FILE)
-
 
 try:
     routing_config = load_routing(os.path.getmtime(ROUTING_FILE))
     clients, client_source = storage.load_clients()
 except Exception as e:
-    reason = str(e) or "Google refused access to the sheet."
-    st.error(f"The page couldn't load its configuration ({type(e).__name__}): {reason}")
-    if isinstance(e, PermissionError):
-        st.info("Check that the sheet is shared with the service account's email as an Editor, "
-                "and that the Google Sheets API is enabled in its Cloud project.")
+    st.error(f"The page couldn't load its configuration: {e}")
     st.stop()
 
 active_clients = [c for c in clients if c["active"]]
 client_names = [c["organization_name"] for c in active_clients]
-today = datetime.date.today()
+today = rules.today() # EST
 
-
-# ==========================================
 # FORM
-# ==========================================
 
 st.title("CAP Illustration Request")
 st.caption("MVP")
 
 if client_source == "sample":
     st.warning(
-        "Google Sheet not connected. Using the sample client list, and submitting is turned off. "
+        "Google Sheet not connected. Using the sample client list, and submitting is turned off."
         "Preview and PDF download still work."
     )
 
 st.markdown("---")
 
-# --- 1. REQUEST HEADER ---
+# 1. REQUEST HEADER
 st.subheader("Request Header")
 col1, col2 = st.columns(2)
 with col1:
     requestor_name = st.text_input("Requestor Name *", key=k("requestor_name"))
     requestor_email = st.text_input("Requestor Email *", key=k("requestor_email"))
-    advisor_of_record = st.text_input("Advisor / Producer *", key=k("advisor"))
+    advisor_of_record = st.text_input("Advisor / Producer", key=k("advisor"))
 with col2:
     date_needed = st.date_input("Date Needed *", value=None, min_value=today,
                                 format="MM/DD/YYYY", key=k("date_needed"))
@@ -104,7 +85,7 @@ with col2:
 
 st.markdown("---")
 
-# --- 2. CLIENT ORGANIZATION ---
+#2. CLIENT ORGANIZATION
 st.subheader("Client Organization")
 col1, col2 = st.columns(2)
 with col1:
@@ -129,7 +110,7 @@ with col2:
 
 st.markdown("---")
 
-# --- 3. DESIGN TYPE ---
+# 3. DESIGN TYPE
 st.subheader("Design Type")
 design_type = st.radio("Select Design Type *", ["Single life recovery", "Joint life recovery"],
                        horizontal=True, key=k("design_type"))
@@ -137,8 +118,7 @@ is_joint = design_type == "Joint life recovery"
 
 st.markdown("---")
 
-
-# --- 4 & 5. INSURED INFORMATION ---
+# 4 & 5. INSURED INFORMATION
 def insured_fields(prefix, label):
     st.subheader(f"{label} Insured")
     values = {
@@ -161,7 +141,6 @@ def insured_fields(prefix, label):
                    f"{rules.income_start_age(age) if age <= rules.MAX_ISSUE_AGE else 'n/a'}")
     return values
 
-
 col_primary, col_secondary = st.columns(2)
 with col_primary:
     primary_values = insured_fields("p", "Primary")
@@ -172,13 +151,13 @@ if is_joint:
 
 st.markdown("---")
 
-# --- 6. CONTRIBUTION & CARRIER ROUTING ---
+# 6. CONTRIBUTION & CARRIER ROUTING
 st.subheader("Contribution Information & Carrier Routing")
 col1, col2 = st.columns(2)
 with col1:
     participant_contribution = st.number_input(
-        "Participant Annual Contribution ($) *", value=None, min_value=0.0, step=5000.0,
-        format="%.0f", key=k("contribution"),
+        "Participant Annual Contribution ($) *", value=None, min_value=0, step=5000,
+        key=k("contribution"),
         help="The participant's own contribution only. The employer offset is added automatically.",
     )
     duration_years = st.number_input("Estimated Contribution Duration (Years) *", value=None,
@@ -210,14 +189,11 @@ with col2:
 
 st.markdown("---")
 
-
-# ==========================================
 # VALIDATION
-# ==========================================
 
 def validate():
     errors = []
-    if not requestor_name.strip() or not advisor_of_record.strip() or not date_needed:
+    if not requestor_name.strip() or not date_needed:
         errors.append("Complete all required fields in Request Header.")
     email = requestor_email.strip()
     if not email or "@" not in email or "." not in email.split("@")[-1]:
@@ -265,10 +241,7 @@ def current_form():
 def signature(request):
     return json.dumps(request, default=str, sort_keys=True)
 
-
-# ==========================================
 # 7. REVIEW & SUBMIT
-# ==========================================
 
 def show_summary(request):
     p, s = request["primary"], request["secondary"]
@@ -312,12 +285,11 @@ def show_summary(request):
             f"* **Recovery carriers:** {', '.join(request['recovery_carriers'])}"
         )
 
-
 st.subheader("Review & Submit")
 submitted = st.session_state.submitted
 
 if submitted:
-    # --- AFTER SUBMIT ---
+    # AFTER SUBMIT 
     st.success(f"Request submitted. Request ID: **{submitted['request_id']}**")
     st.download_button("Download Submittal PDF", data=submitted["pdf"],
                        file_name=submitted["filename"], mime="application/pdf", type="primary")

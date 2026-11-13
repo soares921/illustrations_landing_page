@@ -1,24 +1,21 @@
-"""
-Business rules for CAP illustration requests.
+# Business rules for CAP illustration requests.
 
-Everything here is a plain function with no Streamlit code, so the same rules
-can be reused by the landing page, the tests, and a future census upload.
+# everything here is a plain function with no Streamlit code, so the same rules
+# can be reused by the landing page, the tests, and future census upload
 
-Rules are written by ROLE (benefit / recovery), never by carrier name.
-Which carrier fills each role comes from config/routing_rules.json.
-"""
+# rules are written by role (benefit / recovery), never by carrier name
+# which carrier fills each role comes from routing_rules.json
 
 import datetime
 import json
 import os
 from decimal import Decimal, ROUND_HALF_UP
+from zoneinfo import ZoneInfo
 
-# ==========================================
-# FIXED RULE VALUES (from Michael's spec)
-# ==========================================
+# FIXED RULE VALUES
 
 BENEFIT_SHARE = Decimal("0.85")         # share of total funding to the benefit policy
-RECOVERY_SHARE = Decimal("0.15")        # share to EACH recovery carrier (not divided)
+RECOVERY_SHARE = Decimal("0.15")        # share to each recovery carrier (not divided)
 TARGET_PREMIUM_PCT = Decimal("0.32")    # target premium goal = benefit premium x 32%
 
 MAX_ISSUE_AGE = 84
@@ -38,41 +35,40 @@ FACE_TEXT_REDUCE = (
     "reduce base face as far as the software allows, through maturity."
 )
 
-
-# ==========================================
 # HELPERS
-# ==========================================
+LOCAL_TIMEZONE = ZoneInfo("America/New_York")
+
+def today():
+    # today's date in EST
+    return datetime.datetime.now(LOCAL_TIMEZONE).date()
+
+def now():
+    # the current date and time in EST
+    return datetime.datetime.now(LOCAL_TIMEZONE)
 
 def round_dollars(value):
-    """Round to the nearest whole dollar, with .50 always rounding up."""
+    # round to the nearest whole dollar, with .50 always rounding up
     return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-
 
 def format_dollars(value):
     """85000 -> '$85,000' (no cents)."""
     return f"${round_dollars(value):,}"
 
-
 def format_date(value):
     """date -> 'MM/DD/YYYY'."""
     return value.strftime("%m/%d/%Y")
 
-
 def underwriting_class(tobacco_status):
-    """Every case is illustrated at Preferred."""
+    #Every case is illustrated at Preferred 
     return "Preferred Tobacco" if tobacco_status == "Tobacco" else "Preferred Non-Tobacco"
 
-
-# ==========================================
 # AGE RULES
-# ==========================================
 
 def age_on(dob, as_of=None):
-    """Age based on last birthday, as of the given date (default: today)."""
-    as_of = as_of or datetime.date.today()
+    # age based on last birthday, as of the given date (default: today)
+    as_of = as_of or today()
     had_birthday = (as_of.month, as_of.day) >= (dob.month, dob.day)
     return as_of.year - dob.year - (0 if had_birthday else 1)
-
 
 def income_start_age(age):
     for upper_limit, start_age in INCOME_START_TABLE:
@@ -80,17 +76,13 @@ def income_start_age(age):
             return start_age
     raise ValueError(f"No income start age defined for age {age}")
 
-
-# ==========================================
 # PREMIUM RULES
-# ==========================================
 
 def calculate_premiums(participant_contribution, offset_pct):
-    """
-    Total funding = participant contribution x (1 + employer offset).
-    Benefit premium = 85% of total. Each recovery carrier gets 15% of total.
-    Target premium goal = 32% of the (rounded) benefit premium.
-    """
+    # total funding = participant contribution x (1 + employer offset)
+    # benefit premium = 85% of total. Each recovery carrier gets 15% of total
+    # target premium goal = 32% of the (rounded) benefit premium
+
     contribution = Decimal(str(participant_contribution))
     offset = Decimal(str(offset_pct)) / Decimal("100")
 
@@ -106,36 +98,29 @@ def calculate_premiums(participant_contribution, offset_pct):
         "target_premium_goal": target_premium_goal,
     }
 
-
-# ==========================================
 # FACE INSTRUCTION RULE
-# ==========================================
 
 def face_instruction(duration_years):
-    """Depends only on duration. Reduction always starts in year 8 (7 pay rule)."""
+    # depends only on duration. reduction always starts in year 8 (7 pay rule)
     if duration_years >= FACE_REDUCTION_DURATION_CUTOFF:
         return FACE_TEXT_NO_CHANGE
     return FACE_TEXT_REDUCE
 
-
-# ==========================================
-# ROUTING (reads config/routing_rules.json)
-# ==========================================
+# ROUTING (reads routing_rules.json)
 
 def load_routing_config(file_path):
-    """Reads the routing file. Stops with a clear error if it is missing."""
+    # reads the routing file, stops with an error if it is missing
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Routing file not found: {file_path}")
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-
 def evaluate_routing(design_type, participant_contribution, total_funding, config):
-    """
-    Returns the benefit carrier, the recovery carriers, and the matched rule.
-    The amount compared against each rule is set by "routing_basis" in the
-    config: "participant_contribution" or "total_funding".
-    """
+   
+    # returns the benefit carrier, the recovery carriers, and the matched rule.
+    # the amount compared against each rule is set by "routing_basis" in the
+    # config: "participant_contribution" or "total_funding"
+
     basis = config.get("routing_basis", "participant_contribution")
     amount = total_funding if basis == "total_funding" else participant_contribution
 
@@ -157,23 +142,19 @@ def evaluate_routing(design_type, participant_contribution, total_funding, confi
         "rule": None,
     }
 
-
-# ==========================================
 # BUILD A COMPLETE REQUEST
-# ==========================================
 
 def build_request(form, routing_config, as_of=None):
-    """
-    Turns raw form answers into one complete request: calculated premiums,
-    ages, routing, and every value the carrier sheets need.
-
-    `form` is a plain dict, so a census upload row can be passed in the same way.
-    """
-    as_of = as_of or datetime.date.today()
-    premiums = calculate_premiums(form["participant_contribution"], form["offset_pct"])
+    # turns raw form answers into one complete request: calculated premiums,
+    # ages, routing, and every value the carrier sheets need
+    # 'form' is a plain dict, so a census upload row can be passed in the same way
+    
+    as_of = as_of or today()
+    contribution = round_dollars(form["participant_contribution"])
+    premiums = calculate_premiums(contribution, form["offset_pct"])
     routing = evaluate_routing(
         form["design_type"],
-        form["participant_contribution"],
+        contribution,
         premiums["total_funding"],
         routing_config,
     )
@@ -211,7 +192,7 @@ def build_request(form, routing_config, as_of=None):
         "design_type": form["design_type"],
         "primary": insured_block("p"),
         "secondary": insured_block("s") if is_joint else None,
-        "participant_contribution": round_dollars(form["participant_contribution"]),
+        "participant_contribution": contribution,
         "duration_years": int(form["duration_years"]),
         **premiums,
         "face_instruction": face_instruction(int(form["duration_years"])),
