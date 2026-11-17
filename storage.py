@@ -83,6 +83,7 @@ def load_clients():
     # returns (clients, source) where source is 'sheet' or 'sample'
     if is_connected():
         rows = _spreadsheet().worksheet(CLIENTS_TAB).get_all_records()
+        rows = [_lowercase_headers(row) for row in rows]
         missing = [c for c in CLIENT_COLUMNS if rows and c not in rows[0]]
         if missing:
             raise ValueError(f"The {CLIENTS_TAB} tab is missing columns: {', '.join(missing)}")
@@ -92,6 +93,10 @@ def load_clients():
         return _clean_clients(list(csv.DictReader(f))), "sample"
 
 # TEMPLATE
+
+def _lowercase_headers(row):
+    return {str(key).strip().lower(): value for key, value in row.items()
+            }
 def _clean_template(rows):
     # keeps the sheet's row order. Skips blank rows and rows with no carrier
     cleaned = []
@@ -115,6 +120,7 @@ def load_template():
 
     # numericise_ignore keeps every cell as text, so "6.00%" isn't turned into a number
     rows = _spreadsheet().worksheet(TEMPLATE_TAB).get_all_records(numericise_ignore=["all"])
+    rows = [_lowercase_headers(row) for row in rows]
     missing = [c for c in TEMPLATE_COLUMNS if rows and c not in rows[0]]
     if missing:
         raise ValueError(f"The {TEMPLATE_TAB} tab is missing columns: {', '.join(missing)}")
