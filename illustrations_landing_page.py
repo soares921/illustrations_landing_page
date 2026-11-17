@@ -50,6 +50,7 @@ def load_routing(_modified_time):
 try:
     routing_config = load_routing(os.path.getmtime(ROUTING_FILE))
     clients, client_source = storage.load_clients()
+    template_rows = storage.load_template()
 except Exception as e:
     st.error(f"The page couldn't load its configuration: {e}")
     st.stop()
@@ -327,7 +328,7 @@ else:
             show_summary(request)
 
             try:
-                draft_html, draft_pdf = documents.build_benefit_sheet(request, "DRAFT", routing_config)
+                draft_html, draft_pdf = documents.build_benefit_sheet(request, "DRAFT", template_rows)
             except Exception as e:
                 st.error(f"The {request['benefit_carrier']} sheet couldn't be built: {e}")
                 st.stop()
@@ -348,7 +349,7 @@ else:
                         try:
                             request_id = storage.submit_request(request)
                             final_html, final_pdf = documents.build_benefit_sheet(
-                                request, request_id, routing_config)
+                                request, request_id, template_rows)
                             filename = documents.sheet_filename(
                                 request, request_id, request["benefit_carrier"])
                             delivery.deliver(request, request_id,

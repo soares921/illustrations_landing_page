@@ -17,9 +17,12 @@ import rules
 
 CLIENTS_TAB = "Clients"
 REQUESTS_TAB = "Requests"
+TEMPLATE_TAB = "Template"
 SEED_FILE = os.path.join(os.path.dirname(__file__), "config", "clients_seed.csv")
+TEMPLATE_SEED_FILE = os.path.join(os.path.dirname(__file__), "config", "template_seed.csv")
 
 CLIENT_COLUMNS = ["client_id", "organization_name", "default_offset_pct", "active"]
+TEMPLATE_COLUMNS = ["carrier", "section", "label", "value"]
 
 REQUEST_COLUMNS = [
     "request_id", "submitted_at", "status",
@@ -87,6 +90,37 @@ def load_clients():
 
     with open(SEED_FILE, newline="", encoding="utf-8") as f:
         return _clean_clients(list(csv.DictReader(f))), "sample"
+
+# TEMPLATE
+def _clean_template(rows):
+    # keeps the sheet's row order. Skips blank rows and rows with no carrier
+    cleaned = []
+    for row in rows:
+        entry = {c: str(row.get(c, "")).strip() for c in TEMPLATE_COLUMNS}
+        if entry["carrier"] and (entry["label"] or entry["value"]):
+            cleaned.append(entry)
+    return cleaned
+
+
+def read_template_seed():
+    # the starting template, used when the sheet isn't connected
+    with open(TEMPLATE_SEED_FILE, newline="", encoding="utf-8") as f:
+        return _clean_template(list(csv.DictReader(f)))
+
+@st.cache_data(ttl=60)  # template edits show up within min
+def load_template():
+    if not is_connected():
+        return read_template_seed()
+
+    # numericise_ignore keeps every cell as text, so "6.00%" isn't turned into a number
+    rows = _spreadsheet().worksheet(TEMPLATE_TAB).get_all_records(numericise_ignore=["all"])
+    missing = [c for c in TEMPLATE_COLUMNS if rows and c not in rows[0]]
+    if missing:
+        raise ValueError(f"The {TEMPLATE_TAB} tab is missing columns: {', '.join(missing)}")
+    template = _clean_template(rows)
+    if not template:
+        raise ValueError(f"The {TEMPLATE_TAB} tab is empty.")
+    return template
 
 # REQUESTS
 
