@@ -51,7 +51,7 @@ def benefit_sheet_fields(request, request_id):
         "N": str(n),
         "N+1": str(n + 1),
         "Target Premium Goal": rules.format_dollars(request["target_premium_goal"]),
-        "Income Start Age": str(p(["income_start_age"])),
+        "Income Start Age": str(p["income_start_age"]),
         "Income End Age": str(rules.INCOME_END_AGE),
         "Face Instruction": request["face_instruction"],
     }
