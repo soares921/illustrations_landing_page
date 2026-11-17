@@ -5,13 +5,6 @@
     "carrier": "Allianz Life"
   },
 
-  "carrier_templates": {
-    "benefit": {
-      "Allianz Life": "allianz_benefit.html"
-    },
-    "recovery": {}
-  },
-
   "recovery_rules": [
     {
       "rule_id": "RULE-SINGLE-ANY",
