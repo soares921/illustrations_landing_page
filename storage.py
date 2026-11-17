@@ -80,7 +80,7 @@ def _clean_clients(rows):
 
 @st.cache_data(ttl=60)  # new rows in the clients tab shows after a min
 def load_clients():
-    """Returns (clients, source) where source is 'sheet' or 'sample'."""
+    # returns (clients, source) where source is 'sheet' or 'sample'
     if is_connected():
         rows = _spreadsheet().worksheet(CLIENTS_TAB).get_all_records()
         missing = [c for c in CLIENT_COLUMNS if rows and c not in rows[0]]
@@ -106,6 +106,7 @@ def read_template_seed():
     # the starting template, used when the sheet isn't connected
     with open(TEMPLATE_SEED_FILE, newline="", encoding="utf-8") as f:
         return _clean_template(list(csv.DictReader(f)))
+
 
 @st.cache_data(ttl=60)  # template edits show up within min
 def load_template():
