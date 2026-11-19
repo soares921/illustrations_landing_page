@@ -13,10 +13,12 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import documents  # noqa: E402
 import rules      # noqa: E402
+import storage    # noqa: E402
 
 AS_OF = datetime.date(2026, 11, 4)
 ROUTING = rules.load_routing_config(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "routing_rules.json"))
+TEMPLATE = storage.read_template_seed()
 
 
 def make_form(dob, contribution, duration, offset, design="Single life recovery", **extra):
@@ -80,13 +82,13 @@ def test_face_instruction_cutoff(duration, reduce):
     ("Joint life recovery", 200000, ["Penn Mutual", "National Life", "Lincoln Financial"]),
 ])
 def test_routing(design, amount, carriers):
-    result = rules.evaluate_routing(design, amount, amount, ROUTING)
+    result = rules.evaluate_routing(design, amount, amount, TEMPLATE)
     assert result["recovery_carriers"] == carriers
 
 
 def test_john_smith_sheet_has_every_field_filled():
     req = rules.build_request(make_form(datetime.date(1985, 10, 20), 85000, 10, 10), ROUTING, AS_OF)
-    html, pdf = documents.build_benefit_sheet(req, "DRAFT", ROUTING)
+    html, pdf = documents.build_benefit_sheet(req, "DRAFT", TEMPLATE)
     for text in ["John Smith", "10/20/1985", "$79,475", "years 1 through 10",
                  "years 11 to maturity", "$25,432", "Age 65 through age 84",
                  "Preferred Non-Tobacco", "No change after year 1"]:
@@ -99,5 +101,5 @@ def test_secondary_insured_never_on_benefit_sheet():
                      s_first="Jane", s_middle="", s_last="Doe", s_gender="Female",
                      s_dob=datetime.date(1987, 2, 2), s_state="GA", s_tobacco="Non-Tobacco")
     req = rules.build_request(form, ROUTING, AS_OF)
-    html, _ = documents.build_benefit_sheet(req, "DRAFT", ROUTING)
+    html, _ = documents.build_benefit_sheet(req, "DRAFT", TEMPLATE)
     assert "Jane" not in html and "Doe" not in html
