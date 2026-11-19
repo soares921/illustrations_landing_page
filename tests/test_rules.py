@@ -1,7 +1,5 @@
-"""
-Michael's Allianz test cases. Run with:  python -m pytest
-Ages are calculated as of 11/04/2026, the date the test cases were written for.
-"""
+# Local run tests before uploading. Run with:  python -m pytest
+# ages are calculated as of date; change date with each test
 
 import datetime
 import json
@@ -15,11 +13,10 @@ import documents  # noqa: E402
 import rules      # noqa: E402
 import storage    # noqa: E402
 
-AS_OF = datetime.date(2026, 11, 4)
+AS_OF = datetime.date(2026, 11, 19)
 ROUTING = rules.load_routing_config(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "routing_rules.json"))
 TEMPLATE = storage.read_template_seed()
-
 
 def make_form(dob, contribution, duration, offset, design="Single life recovery", **extra):
     form = {
@@ -35,7 +32,6 @@ def make_form(dob, contribution, duration, offset, design="Single life recovery"
     form.update(extra)
     return form
 
-
 # (dob, contribution, duration, offset, age, benefit, target, recovery, income start, reduce face?)
 CASES = [
     (datetime.date(1985, 10, 20), 85000, 10, 10, 41, 79475, 25432, 14025, 65, False),
@@ -43,7 +39,6 @@ CASES = [
     (datetime.date(1963, 3, 15), 50000, 10, 0, 63, 42500, 13600, 7500, 70, False),
     (datetime.date(1959, 6, 1), 100000, 5, 20, 67, 102000, 32640, 18000, 75, True),
 ]
-
 
 @pytest.mark.parametrize("dob,contrib,dur,offset,age,benefit,target,recovery,income,reduce", CASES)
 def test_michaels_cases(dob, contrib, dur, offset, age, benefit, target, recovery, income, reduce):
@@ -57,23 +52,19 @@ def test_michaels_cases(dob, contrib, dur, offset, age, benefit, target, recover
     assert req["face_instruction"] == expected_face
     assert req["benefit_carrier"] == "Allianz Life"
 
-
 @pytest.mark.parametrize("age,expected", [(61, 65), (62, 70), (65, 70), (66, 75), (84, 75)])
 def test_income_age_boundaries(age, expected):
     assert rules.income_start_age(age) == expected
-
 
 def test_age_uses_last_birthday():
     dob = datetime.date(1964, 11, 5)
     assert rules.age_on(dob, datetime.date(2026, 11, 4)) == 61  # day before birthday
     assert rules.age_on(dob, datetime.date(2026, 11, 5)) == 62  # on the birthday
 
-
 @pytest.mark.parametrize("duration,reduce", [(5, True), (7, True), (8, False), (10, False)])
 def test_face_instruction_cutoff(duration, reduce):
     expected = rules.FACE_TEXT_REDUCE if reduce else rules.FACE_TEXT_NO_CHANGE
     assert rules.face_instruction(duration) == expected
-
 
 @pytest.mark.parametrize("design,amount,carriers", [
     ("Single life recovery", 500000, ["John Hancock", "Symetra"]),
@@ -82,9 +73,8 @@ def test_face_instruction_cutoff(duration, reduce):
     ("Joint life recovery", 200000, ["Penn Mutual", "National Life", "Lincoln Financial"]),
 ])
 def test_routing(design, amount, carriers):
-    result = rules.evaluate_routing(design, amount, amount, TEMPLATE)
+    result = rules.evaluate_routing(design, amount, amount, ROUTING)
     assert result["recovery_carriers"] == carriers
-
 
 def test_john_smith_sheet_has_every_field_filled():
     req = rules.build_request(make_form(datetime.date(1985, 10, 20), 85000, 10, 10), ROUTING, AS_OF)
@@ -95,7 +85,6 @@ def test_john_smith_sheet_has_every_field_filled():
         assert text in html, text
     assert pdf.startswith(b"%PDF")
 
-
 def test_secondary_insured_never_on_benefit_sheet():
     form = make_form(datetime.date(1985, 10, 20), 85000, 10, 10, design="Joint life recovery",
                      s_first="Jane", s_middle="", s_last="Doe", s_gender="Female",
@@ -103,3 +92,18 @@ def test_secondary_insured_never_on_benefit_sheet():
     req = rules.build_request(form, ROUTING, AS_OF)
     html, _ = documents.build_benefit_sheet(req, "DRAFT", TEMPLATE)
     assert "Jane" not in html and "Doe" not in html
+
+def test_carrier_override_keeps_the_rules_choice():
+    form = make_form(datetime.date(1985, 10, 20), 85000, 10, 10,
+                     carrier_override=["Symetra", "Penn Mutual"],
+                     carrier_override_reason="Client asked for Penn Mutual")
+    req = rules.build_request(form, ROUTING, AS_OF)
+    assert req["recovery_carriers"] == ["Symetra", "Penn Mutual"]
+    assert req["routed_recovery_carriers"] == ["John Hancock", "Symetra"]
+    assert req["carriers_overridden"] is True
+    assert req["benefit_carrier"] == "Allianz Life"  # the benefit carrier never changes
+
+def test_no_override_uses_the_rules():
+    req = rules.build_request(make_form(datetime.date(1985, 10, 20), 85000, 10, 10), ROUTING, AS_OF)
+    assert req["recovery_carriers"] == req["routed_recovery_carriers"]
+    assert req["carriers_overridden"] is False

@@ -164,6 +164,10 @@ with col1:
     duration_years = st.number_input("Estimated Contribution Duration (Years) *", value=None,
                                      min_value=1, max_value=50, step=1, key=k("duration"))
 
+override_carriers = False
+carrier_choices = []
+carrier_override_reason = ""
+
 with col2:
     if participant_contribution:
         premiums = rules.calculate_premiums(participant_contribution, offset_pct)
@@ -185,6 +189,18 @@ with col2:
             st.caption(routing["rule"]["note"])
         if not routing["recovery_carriers"]:
             st.warning("No routing rule matches this request. Check config/routing_rules.json.")
+        override_carriers = st.checkbox("Override Recovery Carriers", key=k("carrier_override"))
+        if override_carriers:
+            # the key includes the matched rule, so the list resets when the routing changes
+            rule_id = routing["rule"]["rule_id"] if routing["rule"] else "none"
+            carrier_choices = st.multiselect(
+                "Recovery Carriers *",
+                options=rules.all_recovery_carriers(routing_config),
+                default=routing["recovery_carriers"],
+                key=k(f"carrier_choices_{rule_id}"),
+            )
+            carrier_override_reason = st.text_area("Reason for Carrier Override *",
+                                                   key=k("carrier_override_reason"))
     else:
         st.caption("Enter the participant contribution to see funding and carrier routing.")
 
@@ -217,6 +233,12 @@ def validate():
         if dob and rules.age_on(dob, today) > rules.MAX_ISSUE_AGE:
             errors.append(f"{label} Insured is over the maximum age of {rules.MAX_ISSUE_AGE}.")
 
+    if override_carriers:
+        if not carrier_choices:
+            errors.append("Select at least one recovery carrier.")
+        if not carrier_override_reason.strip():
+            errors.append("A reason is required when overriding the default recovery carriers.")
+
     if not participant_contribution:
         errors.append("Enter the participant annual contribution.")
     if not duration_years:
@@ -236,6 +258,8 @@ def current_form():
         **primary_values, **secondary_values,
         "participant_contribution": participant_contribution,
         "duration_years": duration_years,
+        "carrier_override": carrier_choices if override_carriers else None,
+        "carrier_override_reason": carrier_override_reason,
     }
 
 
@@ -286,6 +310,13 @@ def show_summary(request):
             f"* **Recovery carriers:** {', '.join(request['recovery_carriers'])}"
         )
 
+        if request["carriers_overridden"]:
+            st.warning(
+                f"Recovery carriers overridden. The rules chose: "
+                f"{', '.join(request['routed_recovery_carriers']) or 'none'}. "
+                f"Reason: {request['carrier_override_reason']}"
+            )
+
 st.subheader("Review & Submit")
 submitted = st.session_state.submitted
 
@@ -317,7 +348,6 @@ else:
 
     preview = st.session_state.preview
     if preview:
-        # has anything changed since the preview was made?
         current = None
         if not validate():
             current = rules.build_request(current_form(), routing_config, today)

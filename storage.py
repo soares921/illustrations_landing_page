@@ -37,6 +37,7 @@ REQUEST_COLUMNS = [
     "benefit_premium", "recovery_premium", "target_premium_goal",
     "benefit_carrier", "recovery_carriers", "routing_rule_id",
     "request_json",
+     "carriers_overridden", "routed_recovery_carriers", "carrier_override_reason",
 ]
 
 # CONNECTION
@@ -182,6 +183,9 @@ def _request_row(request, request_id):
         "recovery_carriers": ", ".join(request["recovery_carriers"]),
         "routing_rule_id": request["routing_rule_id"] or "",
         "request_json": json.dumps(request, default=str),
+        "carriers_overridden": "Yes" if request["carriers_overridden"] else "No",
+        "routed_recovery_carriers": ", ".join(request["routed_recovery_carriers"]),
+        "carrier_override_reason": request["carrier_override_reason"],
     }
     return [values[c] for c in REQUEST_COLUMNS]
 

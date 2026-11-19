@@ -115,6 +115,15 @@ def load_routing_config(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def all_recovery_carriers(config):
+    # every recovery carrier named in any routing rule, in the order they first appear
+    carriers = []
+    for rule in config["recovery_rules"]:
+        for carrier in rule["recovery_carriers"]:
+            if carrier not in carriers:
+                carriers.append(carrier)
+    return carriers
+
 def evaluate_routing(design_type, participant_contribution, total_funding, config):
    
     # returns the benefit carrier, the recovery carriers, and the matched rule.
@@ -159,6 +168,12 @@ def build_request(form, routing_config, as_of=None):
         routing_config,
     )
 
+    # the rules always choose the carriers; an override replaces them, but the
+    # rules' choice is kept so everyone can see what was changed
+    routed_carriers = routing["recovery_carriers"]
+    override_carriers = form.get("carrier_override")
+    recovery_carriers = list(override_carriers) if override_carriers else routed_carriers
+
     def insured_block(prefix):
         dob = form[f"{prefix}_dob"]
         age = age_on(dob, as_of)
@@ -197,7 +212,10 @@ def build_request(form, routing_config, as_of=None):
         **premiums,
         "face_instruction": face_instruction(int(form["duration_years"])),
         "benefit_carrier": routing["benefit_carrier"],
-        "recovery_carriers": routing["recovery_carriers"],
+        "recovery_carriers": recovery_carriers,
+        "routed_recovery_carriers": routed_carriers,
+        "carriers_overridden": bool(override_carriers),
+        "carrier_override_reason": (form.get("carrier_override_reason") or "").strip(),
         "routing_rule_id": routing["rule"]["rule_id"] if routing["rule"] else None,
         "routing_note": routing["rule"].get("note", "") if routing["rule"] else "",
         "solve_target": None,  # placeholder: Michael is standardizing this by design type
